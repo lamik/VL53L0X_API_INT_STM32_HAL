@@ -34,7 +34,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "vl53l0x_api.h"
+#include "stdio.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,7 +56,14 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+uint8_t Message[64];
+uint8_t MessageLen;
 
+VL53L0X_RangingMeasurementData_t RangingData;
+VL53L0X_Dev_t  vl53l0x_c; // center module
+VL53L0X_DEV    Dev = &vl53l0x_c;
+
+volatile uint8_t TofDataRead;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,7 +85,13 @@ static void MX_NVIC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+	//
+	// VL53L0X initialisation stuff
+	//
+    uint32_t refSpadCount;
+    uint8_t isApertureSpads;
+    uint8_t VhvSettings;
+    uint8_t PhaseCal;
   /* USER CODE END 1 */
   
 
@@ -103,9 +117,33 @@ int main(void)
   MX_USART2_UART_Init();
 
   /* Initialize interrupts */
-  MX_NVIC_Init();
+  //MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
+  MessageLen = sprintf((char*)Message, "msalamon.pl VL53L0X Continuous mode\n\r");
+  HAL_UART_Transmit(&huart2, Message, MessageLen, 100);
 
+  Dev->I2cHandle = &hi2c1;
+  Dev->I2cDevAddr = 0x52;
+
+  HAL_GPIO_WritePin(TOF_XSHUT_GPIO_Port, TOF_XSHUT_Pin, GPIO_PIN_RESET); // Disable XSHUT
+  HAL_Delay(20);
+  HAL_GPIO_WritePin(TOF_XSHUT_GPIO_Port, TOF_XSHUT_Pin, GPIO_PIN_SET); // Enable XSHUT
+  HAL_Delay(20);
+
+  //
+  // VL53L0X init for Single Measurement
+  //
+
+  VL53L0X_WaitDeviceBooted( Dev );
+  VL53L0X_DataInit( Dev );
+  VL53L0X_StaticInit( Dev );
+  VL53L0X_PerformRefCalibration(Dev, &VhvSettings, &PhaseCal);
+  VL53L0X_PerformRefSpadManagement(Dev, &refSpadCount, &isApertureSpads);
+  VL53L0X_SetDeviceMode(Dev, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
+  VL53L0X_StartMeasurement(Dev);
+
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -113,6 +151,12 @@ int main(void)
   while (1)
   {
 
+	  if(TofDataRead == 1)
+	  {
+		MessageLen = sprintf((char*)Message, "Measured distance: %i\n\r", RangingData.RangeMilliMeter);
+		HAL_UART_Transmit(&huart2, Message, MessageLen, 100);
+		TofDataRead = 0;
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -174,7 +218,15 @@ static void MX_NVIC_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if(GPIO_Pin == TOF_INT_Pin)
+	{
+		VL53L0X_GetRangingMeasurementData(Dev, &RangingData);
+		VL53L0X_ClearInterruptMask(Dev, VL53L0X_REG_SYSTEM_INTERRUPT_GPIO_NEW_SAMPLE_READY);
+		TofDataRead = 1;
+	}
+}
 /* USER CODE END 4 */
 
 /**

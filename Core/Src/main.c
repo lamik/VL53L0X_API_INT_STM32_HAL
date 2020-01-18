@@ -117,7 +117,7 @@ int main(void)
   MX_USART2_UART_Init();
 
   /* Initialize interrupts */
-  //MX_NVIC_Init();
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
   MessageLen = sprintf((char*)Message, "msalamon.pl VL53L0X Continuous mode\n\r");
   HAL_UART_Transmit(&huart2, Message, MessageLen, 100);
@@ -134,6 +134,8 @@ int main(void)
   // VL53L0X init for Single Measurement
   //
 
+  HAL_NVIC_DisableIRQ(EXTI3_IRQn);
+
   VL53L0X_WaitDeviceBooted( Dev );
   VL53L0X_DataInit( Dev );
   VL53L0X_StaticInit( Dev );
@@ -142,7 +144,6 @@ int main(void)
   VL53L0X_SetDeviceMode(Dev, VL53L0X_DEVICEMODE_CONTINUOUS_RANGING);
   VL53L0X_StartMeasurement(Dev);
 
-  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI3_IRQn);
   /* USER CODE END 2 */
 

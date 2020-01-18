@@ -16,12 +16,12 @@
   *
   ******************************************************************************
   *
-  *  Created on: 4.01.2019
+  *  Created on: 12.01.2019
   *      Author: Mateusz Salamon
   *		 www.msalamon.pl
   *
-  *      Website: https://msalamon.pl/tani-laserowy-pomiar-odleglosci-z-czujnikiem-tof-vl53l0x
-  *      GitHub:  https://github.com/lamik/VL53L0X_API_STM32_HAL
+  *      Website: https://msalamon.pl/obsluga-przerwaniowa-czujnika-laserowego-vl53l0x/
+  *      GitHub:  https://github.com/lamik/VL53L0X_API_INT_STM32_HAL
   *      Contact: mateusz@msalamon.pl
 */
 /* USER CODE END Header */
